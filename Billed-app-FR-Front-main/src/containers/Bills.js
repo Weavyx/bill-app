@@ -27,11 +27,25 @@ export default class {
   handleClickIconEye = (icon) => {
     const billUrl = icon.getAttribute("data-bill-url");
     const imgWidth = Math.floor($("#modaleFile").width() * 0.5);
-    $("#modaleFile")
-      .find(".modal-body")
-      .html(
-        `<div style='text-align: center;' class="bill-proof-container"><img width=${imgWidth} src=${billUrl} alt="Bill" /></div>`
-      );
+
+    if (!billUrl || billUrl === "null") {
+      $("#modaleFile")
+        .find(".modal-body")
+        .html(
+          `<div style='text-align: center;' class="bill-proof-container">
+            <p>Aucun justificatif disponible ou format de fichier non supporté</p>
+          </div>`
+        );
+    } else {
+      $("#modaleFile")
+        .find(".modal-body")
+        .html(
+          `<div style='text-align: center;' class="bill-proof-container">
+            <img width=${imgWidth} src=${billUrl} alt="Bill" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <p style="display: none;">Impossible d'afficher le justificatif</p>
+          </div>`
+        );
+    }
     $("#modaleFile").modal("show");
   };
 

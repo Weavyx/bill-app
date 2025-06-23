@@ -687,9 +687,9 @@ describe("Given I am connected as an employee", () => {
       expect(newBill.fileName).toBe("test.jpg");
     });
 
-    test("Then it should extract correct filename from file path", async () => {
-      const file = new File(["content"], "document.pdf", {
-        type: "application/pdf",
+    test("Then it should extract correct filename from valid file path", async () => {
+      const file = new File(["content"], "document.jpg", {
+        type: "image/jpeg",
       });
       const fileInput = document.querySelector(`input[data-testid="file"]`);
 
@@ -700,17 +700,20 @@ describe("Given I am connected as an employee", () => {
 
       const mockEvent = {
         preventDefault: jest.fn(),
-        target: {
-          value: "C:\\Users\\Desktop\\Invoices\\document.pdf",
-        },
+        target: fileInput,
       };
+
+      Object.defineProperty(mockEvent.target, "value", {
+        value: "C:\\Users\\Desktop\\Invoices\\document.jpg",
+        writable: true,
+      });
 
       await newBill.handleChangeFile(mockEvent);
 
       // Attendre que la Promise soit résolue
       await new Promise(process.nextTick);
 
-      expect(newBill.fileName).toBe("document.pdf");
+      expect(newBill.fileName).toBe("document.jpg");
       expect(newBill.fileName).not.toContain("\\");
       expect(newBill.fileName).not.toContain("/");
     });
@@ -784,6 +787,70 @@ describe("Given I am connected as an employee", () => {
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(Error));
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  // Tests pour la validation des extensions de fichiers
+  describe("When I upload a file with invalid extension", () => {
+    let newBill;
+    let mockStore;
+    let onNavigate;
+
+    beforeEach(() => {
+      document.body.innerHTML = NewBillUI();
+      onNavigate = jest.fn();
+      mockStore = {
+        bills: jest.fn(() => ({
+          create: jest.fn(() =>
+            Promise.resolve({ fileUrl: "test-url", key: "1234" })
+          ),
+          update: jest.fn(() => Promise.resolve({})),
+        })),
+      };
+
+      newBill = new NewBill({
+        document,
+        onNavigate,
+        store: mockStore,
+        localStorage: window.localStorage,
+      });
+    });
+
+    test("Then it should reject file with .pdf extension", () => {
+      // Mock window.alert
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation();
+
+      const file = new File(["content"], "document.pdf", {
+        type: "application/pdf",
+      });
+      const fileInput = document.querySelector(`input[data-testid="file"]`);
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      const mockEvent = {
+        preventDefault: jest.fn(),
+        target: fileInput,
+      };
+
+      // Mock target.value pour simuler le chemin du fichier
+      Object.defineProperty(mockEvent.target, "value", {
+        value: "C:\\fakepath\\document.pdf",
+        writable: true,
+      });
+
+      newBill.handleChangeFile(mockEvent);
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Seuls les fichiers au format JPG, JPEG ou PNG sont acceptés."
+      );
+      expect(mockEvent.target.value).toBe("");
+      expect(newBill.fileUrl).toBeNull();
+      expect(newBill.fileName).toBeNull();
+      expect(newBill.billId).toBeNull();
+
+      alertSpy.mockRestore();
     });
   });
 

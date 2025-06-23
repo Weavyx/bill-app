@@ -717,4 +717,47 @@ describe("Given I am connected as an employee", () => {
       });
     });
   });
+
+  // Tests pour la gestion des modales avec fichiers invalides
+  describe("When I click on eye icon", () => {
+    let bills;
+    let mockStore;
+
+    beforeEach(() => {
+      document.body.innerHTML = BillsUI({ data: [] });
+      mockStore = {
+        bills: jest.fn(() => ({
+          list: jest.fn(() => Promise.resolve([])),
+        })),
+      };
+
+      bills = new Bills({
+        document,
+        onNavigate: jest.fn(),
+        store: mockStore,
+        localStorage: window.localStorage,
+      });
+    });
+
+    test("Then it should handle null URL correctly", () => {
+      // Mock jQuery
+      const mockHtml = jest.fn();
+      const mockModal = jest.fn();
+      global.$ = jest.fn(() => ({
+        width: jest.fn(() => 800),
+        find: jest.fn(() => ({ html: mockHtml })),
+        modal: mockModal,
+      }));
+
+      const icon = document.createElement("div");
+      icon.setAttribute("data-bill-url", null);
+
+      bills.handleClickIconEye(icon);
+
+      expect(mockHtml).toHaveBeenCalledWith(
+        expect.stringContaining("Aucun justificatif disponible")
+      );
+      expect(mockModal).toHaveBeenCalledWith("show");
+    });
+  });
 });
