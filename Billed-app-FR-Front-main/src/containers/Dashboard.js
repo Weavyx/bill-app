@@ -14,7 +14,7 @@ export const filteredBills = (data, status) => {
         if (typeof jest !== "undefined") {
           selectCondition = bill.status === status;
         } else {
-        /* istanbul ignore next */
+          /* istanbul ignore next */
           // in prod environment
           const userEmail = JSON.parse(localStorage.getItem("user")).email;
           selectCondition =
@@ -94,8 +94,14 @@ export default class {
       `);
     } else {
       $("#modaleFileAdmin1").find(".modal-body").html(`
-        <div style='text-align: center;'>
-          <img width=${imgWidth} src=${billUrl} alt="Bill" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+        <div style='text-align: center; overflow: hidden; max-height: 70vh;'>
+          <img
+            width=${imgWidth}
+            src=${billUrl}
+            alt="Bill"
+            style="max-width: 100%; max-height: 100%; object-fit: contain;"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+          />
           <p style="display: none;">Impossible d'afficher le justificatif</p>
         </div>
       `);
