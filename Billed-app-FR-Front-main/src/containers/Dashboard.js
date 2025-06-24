@@ -76,6 +76,10 @@ export default class {
     this.document = document;
     this.onNavigate = onNavigate;
     this.store = store;
+    // Compteurs spécifiques pour chaque liste de statut
+    this.counters = {};
+    // Ticket actuellement sélectionné
+    this.selectedTicketId = null;
     $("#arrow-icon1").click((e) => this.handleShowTickets(e, bills, 1));
     $("#arrow-icon2").click((e) => this.handleShowTickets(e, bills, 2));
     $("#arrow-icon3").click((e) => this.handleShowTickets(e, bills, 3));
@@ -112,24 +116,26 @@ export default class {
   };
 
   handleEditTicket(e, bill, bills) {
-    if (this.counter === undefined || this.id !== bill.id) this.counter = 0;
-    if (this.id === undefined || this.id !== bill.id) this.id = bill.id;
-    if (this.counter % 2 === 0) {
-      bills.forEach((b) => {
-        $(`#open-bill${b.id}`).css({ background: "#0D5AE5" });
-      });
-      $(`#open-bill${bill.id}`).css({ background: "#2A2B35" });
-      $(".dashboard-right-container div").html(DashboardFormUI(bill));
-      $(".vertical-navbar").css({ height: "150vh" });
-      this.counter++;
-    } else {
+    // Si c'est le même ticket qui est déjà sélectionné, on le ferme
+    if (this.selectedTicketId === bill.id) {
+      // Fermer le ticket
       $(`#open-bill${bill.id}`).css({ background: "#0D5AE5" });
-
       $(".dashboard-right-container div").html(`
         <div id="big-billed-icon" data-testid="big-billed-icon"> ${BigBilledIcon} </div>
       `);
       $(".vertical-navbar").css({ height: "120vh" });
-      this.counter++;
+      this.selectedTicketId = null;
+    } else {
+      // Ouvrir le nouveau ticket
+      // Remettre tous les tickets à la couleur par défaut
+      bills.forEach((b) => {
+        $(`#open-bill${b.id}`).css({ background: "#0D5AE5" });
+      });
+      // Mettre en surbrillance le ticket sélectionné
+      $(`#open-bill${bill.id}`).css({ background: "#2A2B35" });
+      $(".dashboard-right-container div").html(DashboardFormUI(bill));
+      $(".vertical-navbar").css({ height: "150vh" });
+      this.selectedTicketId = bill.id;
     }
     $("#icon-eye-d").click(this.handleClickIconEye);
     $("#btn-accept-bill").click((e) => this.handleAcceptSubmit(e, bill));
@@ -157,25 +163,40 @@ export default class {
   };
 
   handleShowTickets(e, bills, index) {
-    if (this.counter === undefined || this.index !== index) this.counter = 0;
-    if (this.index === undefined || this.index !== index) this.index = index;
-    if (this.counter % 2 === 0) {
-      $(`#arrow-icon${this.index}`).css({ transform: "rotate(0deg)" });
-      $(`#status-bills-container${this.index}`).html(
-        cards(filteredBills(bills, getStatus(this.index)))
-      );
-      this.counter++;
-    } else {
-      $(`#arrow-icon${this.index}`).css({ transform: "rotate(90deg)" });
-      $(`#status-bills-container${this.index}`).html("");
-      this.counter++;
+    // Utiliser un compteur spécifique à cet index de statut
+    if (this.counters[index] === undefined) {
+      this.counters[index] = 0;
     }
 
-    bills.forEach((bill) => {
-      $(`#open-bill${bill.id}`).click((e) =>
-        this.handleEditTicket(e, bill, bills)
+    if (this.counters[index] % 2 === 0) {
+      $(`#arrow-icon${index}`).css({ transform: "rotate(0deg)" });
+      $(`#status-bills-container${index}`).html(
+        cards(filteredBills(bills, getStatus(index)))
       );
-    });
+      this.counters[index]++;
+
+      // Attacher les événements seulement aux nouveaux tickets de cette liste
+      const filteredBillsForStatus = filteredBills(bills, getStatus(index));
+      filteredBillsForStatus.forEach((bill) => {
+        // Supprimer les anciens événements pour éviter les doublons
+        $(`#open-bill${bill.id}`).off("click.ticket");
+        // Attacher le nouvel événement avec un namespace
+        $(`#open-bill${bill.id}`).on("click.ticket", (e) =>
+          this.handleEditTicket(e, bill, bills)
+        );
+      });
+    } else {
+      $(`#arrow-icon${index}`).css({ transform: "rotate(90deg)" });
+
+      // Supprimer les événements des tickets de cette liste avant de fermer
+      const filteredBillsForStatus = filteredBills(bills, getStatus(index));
+      filteredBillsForStatus.forEach((bill) => {
+        $(`#open-bill${bill.id}`).off("click.ticket");
+      });
+
+      $(`#status-bills-container${index}`).html("");
+      this.counters[index]++;
+    }
 
     return bills;
   }
